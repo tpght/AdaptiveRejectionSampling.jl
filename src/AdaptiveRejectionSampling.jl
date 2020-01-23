@@ -168,14 +168,13 @@ struct RejectionSampler
     max_failed_rate::Float64
     # Constructor when initial points are provided
     RejectionSampler(
-            f::Function,
+            logf::Function,
             support::Tuple{Float64, Float64},
             init::Tuple{Float64, Float64};
             max_segments::Int = 25,
             max_failed_rate::Float64 = 0.001
     ) = begin
         @assert support[1] < support[2] "invalid support, not an interval"
-        logf(x) = log(f(x))
         objective = Objective(logf)
         x1, x2 = init
         @assert x1 < x2 "cutpoints must be ordered"
@@ -190,20 +189,19 @@ struct RejectionSampler
 
     # Constructor for greedy search of starting points
     RejectionSampler(
-            f::Function,
+            logf::Function,
             support::Tuple{Float64, Float64},
             δ::Float64 = 0.5;
             search_range::Tuple{Float64, Float64} = (-10.0,10.0),
             kwargs...
     ) = begin
-        logf(x) = log(f(x))
         grad(x) = ForwardDiff.derivative(logf, x)
         grid_lims = max(search_range[1], support[1]), min(search_range[2], support[2])
         grid = grid_lims[1]:δ:grid_lims[2]
         i1, i2 = findfirst(grad.(grid) .> 0.), findfirst(grad.(grid) .< 0.)
         @assert (i1 != nothing) &&  (i2 != nothing) "couldn't find initial points, please provide them or change `search_range`"
         x1, x2 = grid[i1], grid[i2]
-        RejectionSampler(f, support, (x1, x2); kwargs...)
+        RejectionSampler(logf, support, (x1, x2); kwargs...)
     end
 end
 
